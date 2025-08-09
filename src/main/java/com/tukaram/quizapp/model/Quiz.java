@@ -8,7 +8,6 @@ import java.util.List;
 @Entity
 @Data
 public class Quiz {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -16,4 +15,8 @@ public class Quiz {
 
     @ManyToMany
     private List<Question> questions;
+
+    public void setQuestions(List<Question> questions) {
+
+    }
 }

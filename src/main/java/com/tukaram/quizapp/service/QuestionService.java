@@ -1,5 +1,6 @@
 package com.tukaram.quizapp.service;
 
+
 import com.tukaram.quizapp.dao.QuestionDao;
 import com.tukaram.quizapp.model.Question;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,10 +13,8 @@ import java.util.List;
 
 @Service
 public class QuestionService {
-
     @Autowired
     QuestionDao questionDao;
-
     public ResponseEntity<List<Question>> getAllQuestions() {
         try {
             return new ResponseEntity<>(questionDao.findAll(), HttpStatus.OK);
@@ -32,7 +31,6 @@ public class QuestionService {
             e.printStackTrace();
         }
         return new ResponseEntity<>(new ArrayList<>(), HttpStatus.BAD_REQUEST);
-
     }
 
     public ResponseEntity<String> addQuestion(Question question) {

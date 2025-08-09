@@ -1,5 +1,6 @@
 package com.tukaram.quizapp.service;
 
+
 import com.tukaram.quizapp.dao.QuestionDao;
 import com.tukaram.quizapp.dao.QuizDao;
 import com.tukaram.quizapp.model.Question;
@@ -20,9 +21,9 @@ public class QuizService {
 
     @Autowired
     QuizDao quizDao;
+
     @Autowired
     QuestionDao questionDao;
-
 
     public ResponseEntity<String> createQuiz(String category, int numQ, String title) {
 
