@@ -1,15 +1,16 @@
 package com.tukaram.quizapp.service;
 
 
-import com.tukaram.quizapp.dao.QuestionDao;
-import com.tukaram.quizapp.model.Question;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.tukaram.quizapp.dao.QuestionDao;
+import com.tukaram.quizapp.model.Question;
 
 @Service
 public class QuestionService {
@@ -26,7 +27,7 @@ public class QuestionService {
 
     public ResponseEntity<List<Question>> getQuestionsByCategory(String category) {
         try {
-            return new ResponseEntity<>(questionDao.findByCategory(category),HttpStatus.OK);
+            return new ResponseEntity<>(questionDao.findByCategoryIgnoreCase(category),HttpStatus.OK);
         }catch (Exception e){
             e.printStackTrace();
         }

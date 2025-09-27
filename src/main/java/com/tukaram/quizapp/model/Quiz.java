@@ -1,9 +1,13 @@
 package com.tukaram.quizapp.model;
 
-import jakarta.persistence.*;
-import lombok.Data;
-
 import java.util.List;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToMany;
+import lombok.Data;
 
 @Entity
 @Data
@@ -17,6 +21,6 @@ public class Quiz {
     private List<Question> questions;
 
     public void setQuestions(List<Question> questions) {
-
+        this.questions = questions;
     }
 }

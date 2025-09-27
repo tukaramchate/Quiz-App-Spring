@@ -13,6 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("question")
+//@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
 public class QuestionController {
     @Autowired
     QuestionService questionService;
