@@ -1,12 +1,12 @@
 package com.tukaram.quizapp.service;
 
-
 import com.tukaram.quizapp.dao.QuestionDao;
 import com.tukaram.quizapp.dao.QuizDao;
 import com.tukaram.quizapp.model.Question;
 import com.tukaram.quizapp.model.QuestionWrapper;
 import com.tukaram.quizapp.model.Quiz;
 import com.tukaram.quizapp.model.Response;
+import com.tukaram.quizapp.model.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,43 +25,133 @@ public class QuizService {
     @Autowired
     QuestionDao questionDao;
 
-    public ResponseEntity<String> createQuiz(String category, int numQ, String title) {
+    public ResponseEntity<ApiResponse<Quiz>> createQuiz(String category, int numQ, String title) {
+        try {
+            // Validate input parameters
+            if (title == null || title.trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Quiz title is required"));
+            }
+            
+            if (numQ <= 0 || numQ > 50) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Number of questions must be between 1 and 50"));
+            }
+            
+            // Get questions by category
+            List<Question> questions;
+            if (category == null || category.trim().isEmpty() || category.equalsIgnoreCase("all")) {
+                // Get random questions from all categories
+                questions = questionDao.findRandomQuestionsByCategory("", numQ);
+            } else {
+                questions = questionDao.findRandomQuestionsByCategory(category.trim(), numQ);
+            }
+            
+            if (questions.isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("No questions found for the specified category: " + category));
+            }
+            
+            // Limit questions to requested number
+            if (questions.size() > numQ) {
+                questions = questions.subList(0, numQ);
+            }
 
-        List<Question> questions = questionDao.findRandomQuestionsByCategory(category, numQ);
+            Quiz quiz = new Quiz();
+            quiz.setTitle(title.trim());
+            quiz.setQuestions(questions);
+            Quiz savedQuiz = quizDao.save(quiz);
 
-        Quiz quiz = new Quiz();
-        quiz.setTitle(title);
-        quiz.setQuestions(questions);
-        quizDao.save(quiz);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.created(savedQuiz));
 
-        return new ResponseEntity<>("Success", HttpStatus.CREATED);
-
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.serverError("Failed to create quiz: " + e.getMessage()));
+        }
     }
 
-    public ResponseEntity<List<QuestionWrapper>> getQuizQuestions(Integer id) {
-        Optional<Quiz> quiz = quizDao.findById(id);
-        List<Question> questionsFromDB = quiz.get().getQuestions();
-        List<QuestionWrapper> questionsForUser = new ArrayList<>();
-        for(Question q : questionsFromDB){
-            QuestionWrapper qw = new QuestionWrapper(q.getId(), q.getQuestionTitle(), q.getOption1(), q.getOption2(), q.getOption3(), q.getOption4());
-            questionsForUser.add(qw);
+    public ResponseEntity<ApiResponse<List<QuestionWrapper>>> getQuizQuestions(Integer id) {
+        try {
+            if (id == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Quiz ID is required"));
+            }
+            
+            Optional<Quiz> quizOptional = quizDao.findById(id);
+            if (quizOptional.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.notFound("Quiz not found with ID: " + id));
+            }
+            
+            Quiz quiz = quizOptional.get();
+            List<Question> questionsFromDB = quiz.getQuestions();
+            
+            if (questionsFromDB == null || questionsFromDB.isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.success("No questions found for this quiz", new ArrayList<>()));
+            }
+            
+            List<QuestionWrapper> questionsForUser = new ArrayList<>();
+            for(Question q : questionsFromDB){
+                QuestionWrapper qw = new QuestionWrapper(q.getId(), q.getQuestionTitle(), 
+                    q.getOption1(), q.getOption2(), q.getOption3(), q.getOption4());
+                questionsForUser.add(qw);
+            }
+
+            return ResponseEntity.ok(ApiResponse.success("Quiz questions retrieved successfully", questionsForUser));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.serverError("Failed to retrieve quiz questions: " + e.getMessage()));
         }
-
-        return new ResponseEntity<>(questionsForUser, HttpStatus.OK);
-
     }
 
-    public ResponseEntity<Integer> calculateResult(Integer id, List<Response> responses) {
-        Quiz quiz = quizDao.findById(id).get();
-        List<Question> questions = quiz.getQuestions();
-        int right = 0;
-        int i = 0;
-        for(Response response : responses){
-            if(response.getResponse().equals(questions.get(i).getRightAnswer()))
-                right++;
-
-            i++;
+    public ResponseEntity<ApiResponse<Integer>> calculateResult(Integer id, List<Response> responses) {
+        try {
+            if (id == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Quiz ID is required"));
+            }
+            
+            if (responses == null || responses.isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Responses cannot be empty"));
+            }
+            
+            Optional<Quiz> quizOptional = quizDao.findById(id);
+            if (quizOptional.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.notFound("Quiz not found with ID: " + id));
+            }
+            
+            Quiz quiz = quizOptional.get();
+            List<Question> questions = quiz.getQuestions();
+            
+            if (questions == null || questions.isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("No questions found for this quiz"));
+            }
+            
+            int right = 0;
+            int i = 0;
+            for(Response response : responses){
+                if (i < questions.size()) {
+                    if(response.getResponse() != null && 
+                       response.getResponse().equals(questions.get(i).getRightAnswer())) {
+                        right++;
+                    }
+                }
+                i++;
+            }
+            
+            return ResponseEntity.ok(ApiResponse.success("Quiz scored successfully", right));
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.serverError("Failed to calculate quiz result: " + e.getMessage()));
         }
-        return new ResponseEntity<>(right, HttpStatus.OK);
     }
 }

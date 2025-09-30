@@ -7,4 +7,5 @@ import com.tukaram.quizapp.model.Quiz;
 
 @Repository
 public interface QuizDao extends JpaRepository<Quiz,Integer> {
+
 }
